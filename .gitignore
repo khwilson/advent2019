@@ -1,0 +1,7 @@
+venv
+.vscode
+.ipynb_checkpoints
+a.out
+*.pyc
+*~
+.*.swp
