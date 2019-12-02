@@ -1,13 +1,16 @@
 #include<assert.h>
-
+#include<algorithm> 
+#include<cctype>
 #include<fstream>
 #include<iostream>
+#include<locale>
 #include<string>
-#include <algorithm> 
-#include <cctype>
-#include <locale>
 
-
+/// <summary>
+///   Convert a mass to the amount of fuel it requires
+/// </summary>
+/// <param name="mass">The mass to convert</param>
+/// <returns>The amount of fuel required</returns>
 int mass_to_fuel(int mass) {
   return std::max(mass / 3 - 2, 0);
 }
@@ -44,41 +47,28 @@ int main(int argc, char** argv) {
   assert(mass_to_fuel(1969) == 654);
   assert(mass_to_fuel(100756) == 33583);
 
-  {
-    // Part 1
-    std::ifstream myfile(argv[1]);
-    int total = 0;
-    if (myfile.is_open()) {
-      std::string line;
-      while (getline(myfile, line)) {
-        trim(line);
-        int val = std::stoi(line);
-        total += mass_to_fuel(val);
+  std::ifstream myfile(argv[1]);
+  int part1total = 0, part2total = 0;
+  if (myfile.is_open()) {
+    std::string line;
+    while (getline(myfile, line)) {
+      trim(line);
+      int mass = std::stoi(line);
+      int fuel = mass_to_fuel(mass);
+      part1total += fuel;
+      part2total += fuel;
+      while (fuel > 0) {
+        fuel = mass_to_fuel(fuel);
+        part2total += fuel;
       }
     }
-    myfile.close();
-    std::cout << "The total fuel necessary in Part 1 is " << total << std::endl;
+  } else {
+    std::cerr << "Error opening file" << std::endl;
+    return 1;
   }
-
-  {
-    // Part 2
-    std::ifstream myfile(argv[1]);
-    int total = 0;
-    if (myfile.is_open()) {
-      std::string line;
-      while (getline(myfile, line)) {
-        trim(line);
-        int fuel = std::stoi(line);
-        while (fuel > 0) {
-          fuel = mass_to_fuel(fuel);
-          total += fuel;
-        }
-      }
-    }
-    myfile.close();
-    std::cout << "The total fuel necessary in Part 2 is " << total << std::endl;
-
-  }
+  myfile.close();
+  std::cout << "The total fuel necessary in Part 1 is " << part1total << std::endl;
+  std::cout << "The total fuel necessary in Part 2 is " << part2total << std::endl;
 
   return 0;
 }
