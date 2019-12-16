@@ -3,6 +3,7 @@ This AOC requires a lot of simultating a simple opcode
 language. This is where we keep track of that code.
 """
 import copy
+from collections import deque
 from typing import List
 
 
@@ -81,6 +82,23 @@ class MemoryWrapper:
     return repr(self.ops)
 
 
+class InputWrapper:
+  def __init__(self, inputs):
+    self.inputs = deque(inputs)
+
+  def get(self):
+    return self.inputs.popleft()
+
+  def put(self, x):
+    return self.inputs.append(x)
+
+  def clear(self):
+    self.inputs = deque([])
+  
+  def __bool__(self):
+    return bool(self.inputs)
+
+
 def simulate(
     ops: List[int],
     inplace: bool = False,
@@ -136,6 +154,8 @@ def simulate(
     ops = copy.copy(ops)
   
   ops = MemoryWrapper(ops)
+  if isinstance(inputs, list):
+    inputs = InputWrapper(inputs)
 
   pid = starting_pid
   relative_base = starting_relative_base
@@ -155,14 +175,14 @@ def simulate(
 
     elif opcode == 3:
       if inputs:
-        val = inputs[0]
-        inputs = inputs[1:]
+        val = inputs.get()
       else:
         val = int(input('I request input:'))
       _store(ops, val, 1, full_opcode, pid, relative_base)
       pid += 2
 
     elif opcode == 4:
+      #from IPython.core.debugger import Tracer; Tracer()()
       add = _get_args(ops, 1, full_opcode, pid, relative_base)
       pid += 2
       if output_func(add):

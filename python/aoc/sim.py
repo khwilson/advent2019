@@ -89,6 +89,8 @@ def simulate(
   """
   if not inplace:
     ops = copy.copy(ops)
+    
+  inputs = deque(inputs)
   
   ops = MemoryWrapper(ops)
 
@@ -126,8 +128,7 @@ def simulate(
 
     elif opcode == 3:
       if inputs:
-        val = inputs[0]
-        inputs = inputs[1:]
+        val = inputs.popleft()
       else:
         val = int(input('I request input:'))
       ops[ops[pid + 1] + (relative_base if mode1 == 2 else 0)] = val
