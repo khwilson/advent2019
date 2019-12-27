@@ -3,6 +3,7 @@ This AOC requires a lot of simultating a simple opcode
 language. This is where we keep track of that code.
 """
 import copy
+import itertools as its
 from collections import deque
 from typing import List
 
@@ -99,6 +100,88 @@ class InputWrapper:
     return bool(self.inputs)
 
 
+class Computer:
+  def __init__(
+    self,
+    ops: List[int],
+    inplace: bool = False,
+    inputs: List[int] = None,
+    output_func = lambda val: print('Printing output:', val),
+    starting_pid: int = 0,
+    starting_relative_base: int = 0
+  ):
+    self.ops = MemoryWrapper(ops if inplace else copy.copy(ops))
+    self.inputs = InputWrapper(inputs) if isinstance(inputs, list) else inputs
+    self.output_func = output_func
+    self.pid = starting_pid
+    self.relative_base = starting_relative_base
+    
+  def simulate(self, num_steps: int = -1):
+    cycler = range(num_steps) if num_steps >= 0 else its.cycle([True])
+    for _ in cycler:
+      full_opcode = self.ops[self.pid]
+      opcode = full_opcode % 100
+
+      if opcode == 1:
+        add1, add2 = _get_args(self.ops, 2, full_opcode, self.pid, self.relative_base)
+        _store(self.ops, add1 + add2, 3, full_opcode, self.pid, self.relative_base)
+        self.pid += 4
+
+      elif opcode == 2:
+        add1, add2 = _get_args(self.ops, 2, full_opcode, self.pid, self.relative_base)
+        _store(self.ops, add1 * add2, 3, full_opcode, self.pid, self.relative_base)
+        self.pid += 4
+
+      elif opcode == 3:
+        if self.inputs:
+          val = self.inputs.get()
+        else:
+          val = int(input('I request input:'))
+        _store(self.ops, val, 1, full_opcode, self.pid, self.relative_base)
+        self.pid += 2
+
+      elif opcode == 4:
+        add = _get_args(self.ops, 1, full_opcode, self.pid, self.relative_base)
+        self.pid += 2
+        if self.output_func(add):
+          return self.pid
+
+      elif opcode == 5:
+        add1, add2 = _get_args(self.ops, 2, full_opcode, self.pid, self.relative_base)
+        if add1:
+          self.pid = add2
+        else:
+          self.pid += 3
+
+      elif opcode == 6:
+        add1, add2 = _get_args(self.ops, 2, full_opcode, self.pid, self.relative_base)
+        if not add1:
+          self.pid = add2
+        else:
+          self.pid += 3
+
+      elif opcode == 7:
+        add1, add2 = _get_args(self.ops, 2, full_opcode, self.pid, self.relative_base)
+        _store(self.ops, 1 if add1 < add2 else 0, 3, full_opcode, self.pid, self.relative_base)
+        self.pid += 4
+
+      elif opcode == 8:
+        add1, add2, add3 = _get_args(self.ops, 3, full_opcode, self.pid, self.relative_base)
+        _store(self.ops, 1 if add1 == add2 else 0, 3, full_opcode, self.pid, self.relative_base)
+        self.pid += 4
+
+      elif opcode == 9:
+        add = _get_args(self.ops, 1, full_opcode, self.pid, self.relative_base)
+        self.relative_base += add
+        self.pid += 2
+
+      elif opcode == 99:
+        return -1
+
+      else:
+        raise ValueError("Invalid code: {}".format(self.ops[self.pid]))
+
+
 def simulate(
     ops: List[int],
     inplace: bool = False,
@@ -150,75 +233,4 @@ def simulate(
   Return:
     The current PID if output_func returns Truthy. Else, -1 if opcode 99 is reached.
   """
-  if not inplace:
-    ops = copy.copy(ops)
-  
-  ops = MemoryWrapper(ops)
-  if isinstance(inputs, list):
-    inputs = InputWrapper(inputs)
-
-  pid = starting_pid
-  relative_base = starting_relative_base
-  while True:
-    full_opcode = ops[pid]
-    opcode = full_opcode % 100
-
-    if opcode == 1:
-      add1, add2 = _get_args(ops, 2, full_opcode, pid, relative_base)
-      _store(ops, add1 + add2, 3, full_opcode, pid, relative_base)
-      pid += 4
-
-    elif opcode == 2:
-      add1, add2 = _get_args(ops, 2, full_opcode, pid, relative_base)
-      _store(ops, add1 * add2, 3, full_opcode, pid, relative_base)
-      pid += 4
-
-    elif opcode == 3:
-      if inputs:
-        val = inputs.get()
-      else:
-        val = int(input('I request input:'))
-      _store(ops, val, 1, full_opcode, pid, relative_base)
-      pid += 2
-
-    elif opcode == 4:
-      #from IPython.core.debugger import Tracer; Tracer()()
-      add = _get_args(ops, 1, full_opcode, pid, relative_base)
-      pid += 2
-      if output_func(add):
-        return pid
-    
-    elif opcode == 5:
-      add1, add2 = _get_args(ops, 2, full_opcode, pid, relative_base)
-      if add1:
-        pid = add2
-      else:
-        pid += 3
-  
-    elif opcode == 6:
-      add1, add2 = _get_args(ops, 2, full_opcode, pid, relative_base)
-      if not add1:
-        pid = add2
-      else:
-        pid += 3
-
-    elif opcode == 7:
-      add1, add2 = _get_args(ops, 2, full_opcode, pid, relative_base)
-      _store(ops, 1 if add1 < add2 else 0, 3, full_opcode, pid, relative_base)
-      pid += 4
-    
-    elif opcode == 8:
-      add1, add2, add3 = _get_args(ops, 3, full_opcode, pid, relative_base)
-      _store(ops, 1 if add1 == add2 else 0, 3, full_opcode, pid, relative_base)
-      pid += 4
-
-    elif opcode == 9:
-      add = _get_args(ops, 1, full_opcode, pid, relative_base)
-      relative_base += add
-      pid += 2
-
-    elif opcode == 99:
-      return -1
-
-    else:
-      raise ValueError("Invalid code: {}".format(ops[pid]))
+  Computer(ops, inplace, inputs, output_func, starting_pid, starting_relative_base).simulate()
